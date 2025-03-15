@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import Sidebar from '@/components/Sidebar';
@@ -72,7 +73,7 @@ const Index = () => {
           {messages.length === 0 ? (
             <div className="w-full max-w-3xl px-4 space-y-4">
               <div>
-                <h1 className="mb-8 text-4xl font-semibold text-center">What can I help with?</h1>
+                <h1 className="mb-8 text-4xl font-semibold text-center">What are we cooking today?</h1>
                 <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
               </div>
               <ActionButtons />
