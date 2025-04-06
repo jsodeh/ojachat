@@ -46,8 +46,8 @@ const Index = () => {
 
     while (retries <= MAX_RETRIES && !success) {
       try {
-        // Send message to webhook
-        const response = await fetch('https://odehn.app.n8n.cloud/webhook/bf4dd093-bb02-472c-9454-7ab9af97bd1d', {
+        // Send message to webhook - using the new URL
+        const response = await fetch('https://odehn.app.n8n.cloud/webhook/e104e40e-6134-4825-a6f0-8a646d882662/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
