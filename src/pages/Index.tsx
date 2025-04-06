@@ -38,21 +38,39 @@ const Index = () => {
       
       setMessages(newMessages);
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Send message to webhook
+      const response = await fetch('https://odehn.app.n8n.cloud/webhook/bf4dd093-bb02-472c-9454-7ab9af97bd1d', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: newMessages,
+        }),
+      });
 
+      if (!response.ok) {
+        throw new Error(`Webhook returned status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract the assistant's response
+      const assistantContent = data.content || "Sorry, I couldn't process your request.";
+      
       const assistantMessage: Message = {
         role: 'assistant',
-        content: "I am a hardcoded response. The database connection has been removed for testing purposes. You can modify this response in the Index.tsx file."
+        content: assistantContent
       };
 
       setMessages([...newMessages, assistantMessage]);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to connect to the webhook",
         variant: "destructive"
       });
+      console.error("Webhook error:", error);
     } finally {
       setIsLoading(false);
     }
