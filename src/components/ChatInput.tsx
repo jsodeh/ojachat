@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
 
@@ -31,7 +32,7 @@ const ChatInput = ({ onSend, isLoading = false }: ChatInputProps) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message Claude"
+          placeholder={isLoading ? "Connecting to service..." : "Message Claude"}
           className="w-full resize-none rounded-full bg-[#2F2F2F] px-4 py-4 pr-12 focus:outline-none"
           style={{ maxHeight: "200px" }}
           disabled={isLoading}
@@ -48,6 +49,9 @@ const ChatInput = ({ onSend, isLoading = false }: ChatInputProps) => {
           )}
         </button>
       </div>
+      {isLoading && (
+        <p className="text-xs text-gray-400 mt-1">Connecting to assistant...</p>
+      )}
     </div>
   );
 };

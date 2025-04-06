@@ -12,6 +12,9 @@ type Message = {
   content: string;
 };
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000; // 1 second
+
 const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -29,50 +32,78 @@ const Index = () => {
     }
 
     setIsLoading(true);
+    
+    // Always add the user message immediately
+    const newMessages = [
+      ...messages,
+      { role: 'user', content } as const
+    ];
+    
+    setMessages(newMessages);
 
-    try {
-      const newMessages = [
-        ...messages,
-        { role: 'user', content } as const
-      ];
-      
-      setMessages(newMessages);
+    let retries = 0;
+    let success = false;
 
-      // Send message to webhook
-      const response = await fetch('https://odehn.app.n8n.cloud/webhook/bf4dd093-bb02-472c-9454-7ab9af97bd1d', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: newMessages,
-        }),
-      });
+    while (retries <= MAX_RETRIES && !success) {
+      try {
+        // Send message to webhook
+        const response = await fetch('https://odehn.app.n8n.cloud/webhook/bf4dd093-bb02-472c-9454-7ab9af97bd1d', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          mode: 'cors',
+          body: JSON.stringify({
+            messages: newMessages,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Webhook returned status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Webhook returned status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Extract the assistant's response
+        const assistantContent = data.content || "Sorry, I couldn't process your request.";
+        
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: assistantContent
+        };
+
+        setMessages([...newMessages, assistantMessage]);
+        success = true; // Mark as successful
+      } catch (error: any) {
+        console.error(`Webhook error (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error);
+        
+        retries++;
+        
+        if (retries <= MAX_RETRIES) {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        } else {
+          // If all retries failed, show error and fallback response
+          toast({
+            title: "Connection Error",
+            description: "Could not connect to the assistant. Please check your connection and try again.",
+            variant: "destructive"
+          });
+          
+          // Add a fallback response to let the user know what happened
+          const fallbackMessage: Message = {
+            role: 'assistant',
+            content: "I'm having trouble connecting to my services right now. Please check your internet connection and try again later."
+          };
+          
+          setMessages([...newMessages, fallbackMessage]);
+        }
+      } finally {
+        if (retries >= MAX_RETRIES || success) {
+          setIsLoading(false);
+        }
       }
-
-      const data = await response.json();
-      
-      // Extract the assistant's response
-      const assistantContent = data.content || "Sorry, I couldn't process your request.";
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: assistantContent
-      };
-
-      setMessages([...newMessages, assistantMessage]);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to connect to the webhook",
-        variant: "destructive"
-      });
-      console.error("Webhook error:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
