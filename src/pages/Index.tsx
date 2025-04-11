@@ -1,27 +1,50 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from "@/lib/utils";
 import Sidebar from '@/components/Sidebar';
 import ChatHeader from '@/components/ChatHeader';
 import ChatInput from '@/components/ChatInput';
 import ActionButtons from '@/components/ActionButtons';
 import MessageList from '@/components/MessageList';
-
-type Message = {
-  role: 'user' | 'assistant';
-  content: string;
-};
+import { Message, ChatSession } from '@/types/chat';
 
 const MAX_RETRIES = 2;
-const RETRY_DELAY = 1000; // 1 second
+const RETRY_DELAY = 1000;
 
 const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
+  const [currentSessionId, setCurrentSessionId] = useState(`session_${Date.now()}`);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 
-  const handleSendMessage = async (content: string) => {
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const savedSessions = localStorage.getItem('chatSessions');
+    if (savedSessions) {
+      setChatSessions(JSON.parse(savedSessions));
+    }
+  }, []);
+
+  const handleNewChat = () => {
+    const newSessionId = `session_${Date.now()}`;
+    setCurrentSessionId(newSessionId);
+    setMessages([]);
+  };
+
+  const handleSendMessage = async (content: string, sessionId: string) => {
     if (!content.trim()) {
       toast({
         title: "Error",
@@ -33,68 +56,103 @@ const Index = () => {
 
     setIsLoading(true);
     
-    // Always add the user message immediately
-    const newMessages = [
-      ...messages,
-      { role: 'user', content } as const
-    ];
-    
+    const newMessage: Message = { 
+      role: 'user',
+      content,
+      timestamp: Date.now()
+    };
+    const newMessages = [...messages, newMessage];
     setMessages(newMessages);
+
+    const sessionTitle = messages.length === 0 ? content : chatSessions.find(s => s.id === sessionId)?.title || content;
+    const updatedSessions = chatSessions.filter(s => s.id !== sessionId);
+    const newSession = {
+      id: sessionId,
+      title: sessionTitle.slice(0, 40) + (sessionTitle.length > 40 ? '...' : ''),
+      messages: newMessages,
+      timestamp: Date.now()
+    };
+    
+    const allSessions = [newSession, ...updatedSessions];
+    setChatSessions(allSessions);
+    localStorage.setItem('chatSessions', JSON.stringify(allSessions));
 
     let retries = 0;
     let success = false;
 
     while (retries <= MAX_RETRIES && !success) {
       try {
-        // Send message to webhook - using the new URL
-        const response = await fetch('https://odehn.app.n8n.cloud/webhook-test/dec37cdd-337a-4530-963d-95afc47996a4', {
+        const requestBody = {
+          chatInput: content,
+          sessionId: sessionId
+        };
+        console.log('Sending request:', requestBody);
+        
+        const response = await fetch('https://gwjtvfisorbdejarfgyx.supabase.co/functions/v1/n8n-router', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            'Authorization': 'Bearer ' + import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-          mode: 'cors',
-          body: JSON.stringify({
-            messages: newMessages,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error(`Webhook returned status: ${response.status}`);
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(`Edge function returned status: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Response data:', data);
         
-        // Extract the assistant's response
-        const assistantContent = data.content || "Sorry, I couldn't process your request.";
+        let assistantContent;
+        if (data?.output) {
+          assistantContent = data.output;
+        } else {
+          console.error('Unexpected response format:', data);
+          throw new Error('Invalid response format from assistant');
+        }
+        
+        console.log('Processed assistant content:', assistantContent);
         
         const assistantMessage: Message = {
           role: 'assistant',
-          content: assistantContent
+          content: assistantContent,
+          timestamp: Date.now()
         };
 
-        setMessages([...newMessages, assistantMessage]);
-        success = true; // Mark as successful
+        const updatedMessages = [...newMessages, assistantMessage];
+        setMessages(updatedMessages);
+
+        const updatedSession = {
+          ...newSession,
+          messages: updatedMessages
+        };
+        const finalSessions = [updatedSession, ...updatedSessions];
+        setChatSessions(finalSessions);
+        localStorage.setItem('chatSessions', JSON.stringify(finalSessions));
+
+        success = true;
       } catch (error: any) {
-        console.error(`Webhook error (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error);
-        
+        console.error(`Edge function error (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error);
         retries++;
         
         if (retries <= MAX_RETRIES) {
-          // Wait before retrying
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         } else {
-          // If all retries failed, show error and fallback response
           toast({
             title: "Connection Error",
-            description: "Could not connect to the assistant. Please check your connection and try again.",
+            description: error.message || "Could not connect to the assistant. Please check your connection and try again.",
             variant: "destructive"
           });
           
-          // Add a fallback response to let the user know what happened
           const fallbackMessage: Message = {
             role: 'assistant',
-            content: "I'm having trouble connecting to my services right now. Please check your internet connection and try again later."
+            content: "I'm having trouble connecting right now. Please check your connection and try again later.",
+            timestamp: Date.now()
           };
           
           setMessages([...newMessages, fallbackMessage]);
@@ -112,18 +170,40 @@ const Index = () => {
       <Sidebar 
         isOpen={isSidebarOpen} 
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        onApiKeyChange={() => {}} // Empty function since we don't need API key anymore
+        isMobile={isMobile}
+        onNewChat={handleNewChat}
+        chatSessions={chatSessions}
+        currentSessionId={currentSessionId}
+        onSessionSelect={(sessionId) => {
+          setCurrentSessionId(sessionId);
+          const session = chatSessions.find(s => s.id === sessionId);
+          if (session) {
+            setMessages(session.messages);
+          }
+        }}
       />
       
-      <main className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-0'}`}>
-        <ChatHeader isSidebarOpen={isSidebarOpen} />
+      <main className={cn(
+        "flex-1 transition-all duration-300",
+        !isMobile && (isSidebarOpen ? 'ml-64' : 'ml-0')
+      )}>
+        <ChatHeader 
+          isSidebarOpen={isSidebarOpen} 
+          onNewChat={handleNewChat}
+        />
         
         <div className={`flex h-full flex-col ${messages.length === 0 ? 'items-center justify-center' : 'justify-between'} pt-[60px] pb-4`}>
           {messages.length === 0 ? (
             <div className="w-full max-w-3xl px-4 space-y-4">
               <div>
                 <h1 className="mb-8 text-4xl font-semibold text-center">What are we cooking today?</h1>
-                <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+                <ChatInput 
+                  onSend={(content) => handleSendMessage(content, currentSessionId)} 
+                  isLoading={isLoading} 
+                  isLarge={true} 
+                  sessionId={currentSessionId}
+                  key={currentSessionId}
+                />
               </div>
               <ActionButtons />
             </div>
@@ -131,10 +211,16 @@ const Index = () => {
             <>
               <MessageList messages={messages} />
               <div className="w-full max-w-3xl mx-auto px-4 py-2">
-                <ChatInput onSend={handleSendMessage} isLoading={isLoading} />
+                <ChatInput 
+                  onSend={(content) => handleSendMessage(content, currentSessionId)} 
+                  isLoading={isLoading} 
+                  isLarge={false} 
+                  sessionId={currentSessionId}
+                  key={currentSessionId}
+                />
               </div>
               <div className="text-xs text-center text-gray-500 py-2">
-                ChatGPT can make mistakes. Check important info.
+                OjaChat can make mistakes. Check important info.
               </div>
             </>
           )}
