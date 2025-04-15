@@ -194,9 +194,9 @@ const Index = () => {
         
         <div className={`flex h-full flex-col ${messages.length === 0 ? 'items-center justify-center' : 'justify-between'} pt-[60px] pb-4`}>
           {messages.length === 0 ? (
-            <div className="w-full max-w-3xl px-4 space-y-4">
+            <div className="w-full max-w-2xl px-4 space-y-4">  {/* Changed from max-w-3xl */}
               <div>
-                <h1 className="mb-8 text-4xl font-semibold text-center">What are we cooking today?</h1>
+                <h1 className="mb-8 text-4xl font-semibold text-center">How can I help?</h1>
                 <ChatInput 
                   onSend={(content) => handleSendMessage(content, currentSessionId)} 
                   isLoading={isLoading} 
@@ -210,7 +210,7 @@ const Index = () => {
           ) : (
             <>
               <MessageList messages={messages} />
-              <div className="w-full max-w-3xl mx-auto px-4 py-2">
+              <div className="w-full max-w-2xl mx-auto px-4 py-2">  {/* Changed from max-w-3xl */}
                 <ChatInput 
                   onSend={(content) => handleSendMessage(content, currentSessionId)} 
                   isLoading={isLoading} 

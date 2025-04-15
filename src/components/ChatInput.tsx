@@ -28,7 +28,7 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
   };
 
   return (
-    <div className="relative flex w-full flex-col items-center">
+    <div className="relative flex w-full flex-col items-center pb-4">
       <div className="relative w-full">
         <textarea
           rows={isLarge ? 3 : 1}
