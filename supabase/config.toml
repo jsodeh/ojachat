@@ -1,4 +1,4 @@
-project_id = "yxqovlfolbhlkhaaaolz"
+project_id = "luwpjzrsjuudbyhrlhhy"
 [functions.n8n-router]
 enabled = true
 verify_jwt = true

@@ -6,6 +6,7 @@ import ChatHeader from '@/components/ChatHeader';
 import ChatInput from '@/components/ChatInput';
 import ActionButtons from '@/components/ActionButtons';
 import MessageList from '@/components/MessageList';
+import WelcomeMessage from '@/components/WelcomeMessage';
 import { Message, ChatSession } from '@/types/chat';
 
 const MAX_RETRIES = 2;
@@ -58,7 +59,9 @@ const Index = () => {
     
     const newMessage: Message = { 
       role: 'user',
-      content,
+      content: {
+        text: content,
+      },
       timestamp: Date.now()
     };
     const newMessages = [...messages, newMessage];
@@ -88,11 +91,13 @@ const Index = () => {
         };
         console.log('Sending request:', requestBody);
         
-        const response = await fetch('https://gwjtvfisorbdejarfgyx.supabase.co/functions/v1/n8n-router', {
+        const response = await fetch('https://luwpjzrsjuudbyhrlhhy.supabase.co/functions/v1/n8n-router', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'testauth': 'testauth'
           },
           body: JSON.stringify(requestBody),
         });
@@ -110,7 +115,23 @@ const Index = () => {
         
         let assistantContent;
         if (data?.output) {
-          assistantContent = data.output;
+          // Parse the output to check for products
+          let text = data.output;
+          let products = [];
+          
+          // Check if the response contains product data
+          if (data.products) {
+            console.log('Products found in response:', data.products);
+            products = data.products;
+          } else {
+            console.log('No products in response');
+          }
+          
+          assistantContent = {
+            text,
+            products
+          };
+          console.log('Final assistant content with products:', assistantContent);
         } else {
           console.error('Unexpected response format:', data);
           throw new Error('Invalid response format from assistant');
@@ -136,7 +157,7 @@ const Index = () => {
         localStorage.setItem('chatSessions', JSON.stringify(finalSessions));
 
         success = true;
-      } catch (error: any) {
+      } catch (error) {
         console.error(`Edge function error (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error);
         retries++;
         
@@ -151,7 +172,15 @@ const Index = () => {
           
           const fallbackMessage: Message = {
             role: 'assistant',
-            content: "I'm having trouble connecting right now. Please check your connection and try again later.",
+            content: {
+              text: "I'm having trouble connecting right now. Would you like to try again?",
+              actionButtons: [
+                {
+                  label: "Retry",
+                  onClick: () => handleSendMessage(content, sessionId)
+                }
+              ]
+            },
             timestamp: Date.now()
           };
           
@@ -194,9 +223,9 @@ const Index = () => {
         
         <div className={`flex h-full flex-col ${messages.length === 0 ? 'items-center justify-center' : 'justify-between'} pt-[60px] pb-4`}>
           {messages.length === 0 ? (
-            <div className="w-full max-w-2xl px-4 space-y-4">  {/* Changed from max-w-3xl */}
+            <div className="w-full max-w-2xl px-4 space-y-4">
               <div>
-                <h1 className="mb-8 text-4xl font-semibold text-center">How can I help?</h1>
+                <WelcomeMessage className="mb-8" />
                 <ChatInput 
                   onSend={(content) => handleSendMessage(content, currentSessionId)} 
                   isLoading={isLoading} 
@@ -209,8 +238,8 @@ const Index = () => {
             </div>
           ) : (
             <>
-              <MessageList messages={messages} />
-              <div className="w-full max-w-2xl mx-auto px-4 py-2">  {/* Changed from max-w-3xl */}
+              <MessageList messages={messages} onRetry={handleSendMessage} />
+              <div className="w-full max-w-2xl mx-auto px-4 py-2">
                 <ChatInput 
                   onSend={(content) => handleSendMessage(content, currentSessionId)} 
                   isLoading={isLoading} 

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
+import { useAnimatedHints } from '@/hooks/use-animated-hints';
+import { useLocation } from '@/hooks/use-location';
 
 interface ChatInputProps {
   onSend: (message: string, sessionId: string) => void;
@@ -11,6 +13,10 @@ interface ChatInputProps {
 
 const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: ChatInputProps) => {
   const [message, setMessage] = useState("");
+  const { location } = useLocation();
+  const { currentText } = useAnimatedHints({
+    location: location?.area
+  });
 
   const handleSubmit = () => {
     if (message.trim() && !isLoading) {
@@ -35,7 +41,7 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isLoading ? "Connecting to service..." : "Type your message..."}
+          placeholder={isLoading ? "Connecting to service..." : currentText}
           className={`w-full resize-none px-4 pr-12 focus:outline-none bg-[#2F2F2F] ${
             isLarge ? 'py-6 rounded-[8px]' : 'py-4 rounded-full'
           }`}
