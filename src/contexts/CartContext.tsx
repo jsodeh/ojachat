@@ -1,20 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types/chat';
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-  selectedColor: string;
-}
+import { CartItem } from '@/types/chat';
 
 interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
-  removeItem: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
+  removeItem: (id: string, color?: string) => void;
+  updateQuantity: (id: string, quantity: number, color?: string) => void;
   clearCart: () => void;
   totalItems: number;
   totalAmount: number;
@@ -32,7 +24,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setItems(JSON.parse(savedCart));
+      try {
+        setItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Failed to parse cart from localStorage:', error);
+      }
     }
   }, []);
 
@@ -43,34 +39,43 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addItem = (newItem: CartItem) => {
     setItems(currentItems => {
-      const existingItemIndex = currentItems.findIndex(item => 
-        item.id === newItem.id && item.selectedColor === newItem.selectedColor
+      const existingItemIndex = currentItems.findIndex(
+        item => item.id === newItem.id && item.color === newItem.color
       );
 
       if (existingItemIndex > -1) {
-        // Update quantity if item exists with same color
-        return currentItems.map((item, index) => 
-          index === existingItemIndex 
-            ? { ...item, quantity: item.quantity + newItem.quantity }
-            : item
-        );
+        // Update quantity of existing item
+        const updatedItems = [...currentItems];
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + newItem.quantity
+        };
+        return updatedItems;
       }
 
-      // Add new item if it doesn't exist
+      // Add new item
       return [...currentItems, newItem];
     });
   };
 
-  const removeItem = (itemId: string) => {
-    setItems(currentItems => currentItems.filter(item => item.id !== itemId));
+  const removeItem = (id: string, color?: string) => {
+    setItems(currentItems => 
+      currentItems.filter(item => !(item.id === id && item.color === color))
+    );
   };
 
-  const updateQuantity = (itemId: string, quantity: number) => {
-    setItems(currentItems =>
-      currentItems.map(item =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
-    );
+  const updateQuantity = (id: string, quantity: number, color?: string) => {
+    setItems(currentItems => {
+      if (quantity <= 0) {
+        return currentItems.filter(item => !(item.id === id && item.color === color));
+      }
+
+      return currentItems.map(item =>
+        item.id === id && item.color === color
+          ? { ...item, quantity }
+          : item
+      );
+    });
   };
 
   const clearCart = () => {
@@ -78,7 +83,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  const totalAmount = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   return (
     <CartContext.Provider

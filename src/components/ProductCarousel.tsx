@@ -1,16 +1,11 @@
 import { Product } from "@/types/chat";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Heart, Star } from "lucide-react";
 import { useState } from "react";
 import ProductModal from "./ProductModal";
+import AuthModal from "./AuthModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductCarouselProps {
   products: Product[];
@@ -18,64 +13,110 @@ interface ProductCarouselProps {
 }
 
 const ProductCarousel = ({ products, className }: ProductCarouselProps) => {
+  const { isAuthenticated } = useAuth();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
-  if (!products?.length) return null;
+  const getProxiedImageUrl = (url: string) => {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=placeholder`;
+  };
+
+  if (!products || products.length === 0) {
+    return null;
+  }
+
+  const validProducts = products.filter(product => {
+    const hasRequiredFields = product.id && product.name && product.image;
+    if (!hasRequiredFields) {
+      console.warn('Product missing required fields:', product);
+    }
+    return hasRequiredFields;
+  });
+
+  const handleProductClick = (product: Product) => {
+    console.log('Click detected on product:', product);
+    setSelectedProduct(product);
+  };
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleImageError = (product: Product, e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    setImageErrors(prev => ({
+      ...prev,
+      [product.id]: true
+    }));
+  };
 
   return (
     <>
-      <div className={cn("w-full max-w-3xl mx-auto my-4", className)}>
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full relative"
-        >
-          <CarouselContent className="-ml-2 md:-ml-4">
-            {products.map((product) => (
-              <CarouselItem key={product.id} className="pl-2 md:pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4">
-                <Card 
-                  className="relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]"
-                  onClick={() => setSelectedProduct(product)}
+      <div className={cn("w-full my-4", className)}>
+        <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
+          {validProducts.map((product) => (
+            <Card 
+              key={product.id}
+              className="cursor-pointer hover:scale-[1.02] transition-transform duration-200 overflow-hidden flex-shrink-0 w-[140px] sm:w-[160px]"
+              onClick={() => handleProductClick(product)}
+            >
+              <div className="relative">
+                <button 
+                  className="absolute top-2 right-2 z-10 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFavoriteClick(e);
+                  }}
                 >
-                  <button 
-                    className="absolute top-3 right-3 z-10 p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle favorite toggle
-                    }}
-                  >
-                    <Heart className="h-4 w-4 text-gray-600" />
-                  </button>
-                  <div className="relative aspect-square">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <div className="p-3">
+                  <Heart className="h-4 w-4 text-gray-600" />
+                </button>
+                
+                <div className="relative aspect-square">
+                  <img
+                    src={getProxiedImageUrl(product.image)}
+                    alt={product.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                    onError={(e) => handleImageError(product, e)}
+                  />
+                  {imageErrors[product.id] && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                      <span className="text-sm text-gray-500">Image unavailable</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-2">
+                  {product.rating && (
                     <div className="flex items-center gap-1 mb-1">
                       <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs text-gray-600">4.5</span>
+                      <span className="text-xs text-gray-600">
+                        {product.rating.toFixed(1)}
+                        {product.ratingCount ? ` (${product.ratingCount})` : ''}
+                      </span>
                     </div>
-                    <h3 className="font-medium text-sm mb-1 text-gray-900 line-clamp-1">
-                      {product.name}
-                    </h3>
-                    <div className="text-base font-semibold text-gray-900">
+                  )}
+                  <h3 className="font-medium text-sm mb-1 text-gray-900 line-clamp-1">
+                    {product.name}
+                  </h3>
+                  {product.description && (
+                    <p className="text-gray-600 text-xs mt-1 line-clamp-2">
+                      {product.description}
+                    </p>
+                  )}
+                  {product.price !== undefined && (
+                    <div className="text-sm font-semibold text-gray-900 mt-1">
                       ₦{product.price.toLocaleString()}
                     </div>
-                  </div>
-                </Card>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <div className="absolute -left-4 -right-4 top-0 bottom-0 flex items-center justify-between">
-            <CarouselPrevious className="relative translate-x-0 translate-y-0 left-0" />
-            <CarouselNext className="relative translate-x-0 translate-y-0 right-0" />
-          </div>
-        </Carousel>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {selectedProduct && (
@@ -85,6 +126,11 @@ const ProductCarousel = ({ products, className }: ProductCarouselProps) => {
           onClose={() => setSelectedProduct(null)}
         />
       )}
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </>
   );
 };

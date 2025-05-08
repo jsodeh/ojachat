@@ -1,102 +1,233 @@
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Plus, Minus, Check } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { useRouter } from "next/router";
+import { Minus, Plus, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import OrderStatusWidget from "./OrderStatusWidget";
+import { OrderStatus } from "@/types/chat";
+import AuthModal from "./AuthModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CartModalProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
+  onCheckout: () => void;
+  onOrderStatus?: (status: OrderStatus) => void;
 }
 
-const CartModal = ({ open, onClose }: CartModalProps) => {
-  const { items, updateQuantity, totalAmount } = useCart();
-  const router = useRouter();
+const CartModal = ({ isOpen, onClose, onCheckout, onOrderStatus }: CartModalProps) => {
+  const { items, updateQuantity, removeItem, totalItems, totalAmount } = useCart();
+  const { isAuthenticated } = useAuth();
+  const [showOrderStatus, setShowOrderStatus] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState(false);
+
+  const getProxiedImageUrl = (url: string) => {
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&default=placeholder`;
+  };
+
+  const handleCreateOrder = async () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      setPendingOrder(true);
+      return;
+    }
+    setIsProcessing(true);
+    const supabase = createClient();
+    
+    try {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Please sign in to place an order');
+      }
+
+      // Create the order
+      const { data, error } = await supabase
+        .from('orders')
+        .insert([
+          {
+            customer_id: user.id,
+            cart_items: items,
+            total_amount: totalAmount,
+            status: 'pending'
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Show success message
+      setShowOrderStatus(true);
+      
+      // Send order status to chat if callback exists
+      if (onOrderStatus && data) {
+        const orderStatus: OrderStatus = {
+          type: 'order_status',
+          message: 'Your order has been received and is being processed',
+          orderId: data.id,
+          status: 'pending'
+        };
+        onOrderStatus(orderStatus);
+      }
+      
+      // Close modal after a delay
+      setTimeout(() => {
+        onClose();
+        // Hide status message after modal closes
+        setTimeout(() => {
+          setShowOrderStatus(false);
+        }, 3000);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Failed to create order. Please try again.');
+    } finally {
+      setIsProcessing(false);
+      setPendingOrder(false);
+    }
+  };
 
   const handleCheckout = () => {
     onClose();
-    router.push("/checkout");
+    onCheckout();
   };
 
-  return (
-    <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-md p-0">
-        <SheetHeader className="p-4 border-b">
-          <div className="flex items-center gap-2">
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <SheetTitle className="text-xl font-semibold">Cart</SheetTitle>
+  const handleProductClick = (productId: string) => {
+    console.log('Product clicked:', productId);
+    // Add your product click logic here
+  };
+
+  // Watch for authentication and pending order
+  // If user authenticates and pendingOrder is true, try to create order again
+  useEffect(() => {
+    if (isAuthenticated && pendingOrder) {
+      setShowAuthModal(false);
+      setPendingOrder(false);
+      handleCreateOrder();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  if (items.length === 0) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="bg-white text-gray-900 sm:max-w-[600px]">
+          <div className="p-6 text-center">
+            <h2 className="text-xl font-semibold mb-2 text-gray-900">Your cart is empty</h2>
+            <p className="text-gray-600">Start adding some items to your cart!</p>
           </div>
-        </SheetHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
-        <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-4">
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="bg-white text-gray-900 sm:max-w-[600px] flex flex-col h-[85vh] p-0">
+          {/* Header */}
+          <div className="flex justify-between items-center border-b p-4 bg-white">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Cart ({totalItems} {totalItems === 1 ? 'item' : 'items'})
+            </h2>
+            <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Scrollable Items Section */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="p-4 space-y-4">
               {items.map((item) => (
-                <div key={item.id} className="flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {item.selectedColor && (
-                      <div className="absolute -top-1 -right-1">
-                        <Check className="w-4 h-4 text-green-600" />
-                      </div>
-                    )}
+                <div
+                  key={`${item.id}-${item.color || 'default'}`}
+                  className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg relative group hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => handleProductClick(item.id)}
+                >
+                  <div className="relative w-20 h-20 flex-shrink-0">
+                    <img
+                      src={getProxiedImageUrl(item.image)}
+                      alt={item.name}
+                      className="w-full h-full object-cover rounded-md"
+                    />
                   </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="font-medium text-sm">{item.name}</h3>
-                    <div className="text-sm text-gray-500 mt-1">
-                      ₦{item.price.toLocaleString()}
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 truncate group-hover:text-gray-700">{item.name}</h3>
+                    {item.color && (
+                      <p className="text-sm text-gray-500 mt-1">Color: {item.color}</p>
+                    )}
+                    <p className="text-sm font-medium text-gray-900 mt-1">₦{item.price.toLocaleString()}</p>
+
+                    <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1), item.color)}
+                        className="h-8 w-8 bg-white hover:bg-gray-50"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-8 text-center text-gray-900">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1, item.color)}
+                        className="h-8 w-8 bg-white hover:bg-gray-50"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="p-1 hover:bg-gray-100 rounded-full"
-                    >
-                      <Minus className="h-4 w-4" />
-                    </button>
-                    <span className="w-8 text-center">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="p-1 hover:bg-gray-100 rounded-full"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeItem(item.id, item.color);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="border-t p-4 space-y-4">
-            <div className="flex items-center justify-between text-base font-semibold">
-              <span>Selected items ({items.length})</span>
-              <span>Total: ₦{totalAmount.toLocaleString()}</span>
+          {/* Fixed Bottom Section */}
+          <div className="border-t bg-white p-4">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-gray-600">Subtotal</span>
+              <span className="text-lg font-semibold text-gray-900">₦{totalAmount.toLocaleString()}</span>
             </div>
             <Button 
-              className="w-full bg-green-700 hover:bg-green-800 text-white py-6"
-              onClick={handleCheckout}
+              className="w-full bg-green-600 hover:bg-green-700 text-white" 
+              size="lg"
+              onClick={handleCreateOrder}
+              disabled={isProcessing}
             >
-              Proceed to Checkout
+              {isProcessing ? "Processing..." : "Send your order"}
             </Button>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </DialogContent>
+      </Dialog>
+
+      {showOrderStatus && (
+        <OrderStatusWidget message="Your order has been sent for processing" />
+      )}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
+    </>
   );
 };
 

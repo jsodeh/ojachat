@@ -7,16 +7,26 @@ import ChatInput from '@/components/ChatInput';
 import ActionButtons from '@/components/ActionButtons';
 import MessageList from '@/components/MessageList';
 import WelcomeMessage from '@/components/WelcomeMessage';
+import CartModal from '@/components/CartModal';
+import CheckoutModal from '@/components/CheckoutModal';
 import { Message, ChatSession } from '@/types/chat';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+if (!SUPABASE_ANON_KEY || !SUPABASE_URL) {
+  console.error('Missing required environment variables');
+}
 
 const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const { toast } = useToast();
   const [currentSessionId, setCurrentSessionId] = useState(`session_${Date.now()}`);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -43,6 +53,10 @@ const Index = () => {
     const newSessionId = `session_${Date.now()}`;
     setCurrentSessionId(newSessionId);
     setMessages([]);
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   const handleSendMessage = async (content: string, sessionId: string) => {
@@ -91,12 +105,12 @@ const Index = () => {
         };
         console.log('Sending request:', requestBody);
         
-        const response = await fetch('https://luwpjzrsjuudbyhrlhhy.supabase.co/functions/v1/n8n-router', {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/n8n-router`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
             'testauth': 'testauth'
           },
           body: JSON.stringify(requestBody),
@@ -115,23 +129,25 @@ const Index = () => {
         
         let assistantContent;
         if (data?.output) {
-          // Parse the output to check for products
-          let text = data.output;
-          let products = [];
-          
-          // Check if the response contains product data
-          if (data.products) {
-            console.log('Products found in response:', data.products);
-            products = data.products;
-          } else {
-            console.log('No products in response');
+          try {
+            // Try to parse the output as JSON first
+            const parsedOutput = JSON.parse(data.output);
+            console.log('Parsed output:', parsedOutput);
+            
+            assistantContent = {
+              text: parsedOutput.text,
+              products: parsedOutput.rawResponse?.products || [],
+              rawResponse: parsedOutput.rawResponse
+            };
+          } catch (e) {
+            // If parsing fails, use the output as plain text
+            console.log('Output is not JSON, using as plain text');
+            assistantContent = {
+              text: data.output,
+              products: []
+            };
           }
-          
-          assistantContent = {
-            text,
-            products
-          };
-          console.log('Final assistant content with products:', assistantContent);
+          console.log('Final assistant content:', assistantContent);
         } else {
           console.error('Unexpected response format:', data);
           throw new Error('Invalid response format from assistant');
@@ -162,18 +178,22 @@ const Index = () => {
         retries++;
         
         if (retries <= MAX_RETRIES) {
+          console.log(`Retrying request (attempt ${retries + 1}/${MAX_RETRIES + 1})...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         } else {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+          console.error('Final error after retries:', errorMessage);
+          
           toast({
             title: "Connection Error",
-            description: error.message || "Could not connect to the assistant. Please check your connection and try again.",
+            description: `Failed to connect: ${errorMessage}. Please check your connection and try again.`,
             variant: "destructive"
           });
           
           const fallbackMessage: Message = {
             role: 'assistant',
             content: {
-              text: "I'm having trouble connecting right now. Would you like to try again?",
+              text: "I apologize, but I'm having troubl                                                                                                                         e connecting to the server. This might be due to:",
               actionButtons: [
                 {
                   label: "Retry",
@@ -194,68 +214,114 @@ const Index = () => {
     }
   };
 
+  const handleSessionSelect = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (session) {
+      setMessages(session.messages);
+    }
+  };
+
+  const handleOrderStatus = (status: OrderStatus) => {
+    const newMessage: Message = {
+      role: 'assistant',
+      content: {
+        text: status.message,
+        richComponent: status
+      },
+      timestamp: Date.now()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Update the session with the new message
+    const updatedSessions = chatSessions.map(session => {
+      if (session.id === currentSessionId) {
+        return {
+          ...session,
+          messages: [...session.messages, newMessage]
+        };
+      }
+      return session;
+    });
+    
+    setChatSessions(updatedSessions);
+    localStorage.setItem('chatSessions', JSON.stringify(updatedSessions));
+  };
+
   return (
-    <div className="flex h-screen">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        isMobile={isMobile}
-        onNewChat={handleNewChat}
-        chatSessions={chatSessions}
-        currentSessionId={currentSessionId}
-        onSessionSelect={(sessionId) => {
-          setCurrentSessionId(sessionId);
-          const session = chatSessions.find(s => s.id === sessionId);
-          if (session) {
-            setMessages(session.messages);
-          }
-        }}
-      />
-      
-      <main className={cn(
-        "flex-1 transition-all duration-300",
-        !isMobile && (isSidebarOpen ? 'ml-64' : 'ml-0')
-      )}>
-        <ChatHeader 
-          isSidebarOpen={isSidebarOpen} 
+    <>
+      <div className="flex h-screen">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
+          isMobile={isMobile}
           onNewChat={handleNewChat}
+          chatSessions={chatSessions}
+          currentSessionId={currentSessionId}
+          onSessionSelect={handleSessionSelect}
+          onCartClick={() => setIsCartModalOpen(true)}
         />
         
-        <div className={`flex h-full flex-col ${messages.length === 0 ? 'items-center justify-center' : 'justify-between'} pt-[60px] pb-4`}>
-          {messages.length === 0 ? (
-            <div className="w-full max-w-2xl px-4 space-y-4">
-              <div>
-                <WelcomeMessage className="mb-8" />
-                <ChatInput 
-                  onSend={(content) => handleSendMessage(content, currentSessionId)} 
-                  isLoading={isLoading} 
-                  isLarge={true} 
-                  sessionId={currentSessionId}
-                  key={currentSessionId}
-                />
+        <main className={cn(
+          "flex-1 transition-all duration-300",
+          !isMobile && (isSidebarOpen ? 'ml-64' : 'ml-0')
+        )}>
+          <ChatHeader 
+            isSidebarOpen={isSidebarOpen} 
+            onNewChat={handleNewChat}
+          />
+          
+          <div className={`flex h-full flex-col ${messages.length === 0 ? 'items-center justify-center' : 'justify-between'} pt-[60px] pb-4`}>
+            {messages.length === 0 ? (
+              <div className="w-full max-w-2xl px-4 space-y-4">
+                <div>
+                  <WelcomeMessage className="mb-8" />
+                  <ChatInput 
+                    onSend={(content) => handleSendMessage(content, currentSessionId)} 
+                    isLoading={isLoading} 
+                    isLarge={true} 
+                    sessionId={currentSessionId}
+                    key={currentSessionId}
+                  />
+                </div>
+                <ActionButtons onSend={(content) => handleSendMessage(content, currentSessionId)} />
               </div>
-              <ActionButtons />
-            </div>
-          ) : (
-            <>
-              <MessageList messages={messages} onRetry={handleSendMessage} />
-              <div className="w-full max-w-2xl mx-auto px-4 py-2">
-                <ChatInput 
-                  onSend={(content) => handleSendMessage(content, currentSessionId)} 
-                  isLoading={isLoading} 
-                  isLarge={false} 
-                  sessionId={currentSessionId}
-                  key={currentSessionId}
-                />
-              </div>
-              <div className="text-xs text-center text-gray-500 py-2">
-                OjaChat can make mistakes. Check important info.
-              </div>
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+            ) : (
+              <>
+                <MessageList messages={messages} onRetry={handleSendMessage} isLoading={isLoading} />
+                <div className="w-full max-w-2xl mx-auto px-4 py-2">
+                  <ChatInput 
+                    onSend={(content) => handleSendMessage(content, currentSessionId)} 
+                    isLoading={isLoading} 
+                    isLarge={false} 
+                    sessionId={currentSessionId}
+                    key={currentSessionId}
+                  />
+                </div>
+                <div className="text-xs text-center text-gray-500 py-2">
+                  OjaChat can make mistakes. Check important info.
+                </div>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+
+      <CartModal 
+        isOpen={isCartModalOpen} 
+        onClose={() => setIsCartModalOpen(false)} 
+        onCheckout={() => {
+          setIsCartModalOpen(false);
+          setIsCheckoutModalOpen(true);
+        }}
+        onOrderStatus={handleOrderStatus}
+      />
+      <CheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+      />
+    </>
   );
 };
 

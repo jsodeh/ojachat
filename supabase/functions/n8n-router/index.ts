@@ -35,7 +35,7 @@ interface WebhookRequest {
   body?: any;
 }
 
-const N8N_WEBHOOK_URL = 'https://ojachat.app.n8n.cloud/webhook/bf4dd093-bb02-472c-9454-7ab9af97bd1d';
+const N8N_WEBHOOK_URL = 'https://n8n.srv811785.hstgr.cloud/webhook-test/bf4dd093-bb02-472c-9454-7ab9af97bd1d';
 
 console.log("n8n-router function started");
 
