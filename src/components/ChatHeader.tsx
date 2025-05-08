@@ -22,7 +22,7 @@ const ChatHeader = ({ isSidebarOpen = true, onNewChat }: ChatHeaderProps) => {
         >
           <div className="gizmo-shadow-stroke relative flex h-8 w-8 items-center justify-center rounded-full bg-token-main-surface-primary text-token-text-primary cursor-pointer hover:bg-gray-700">
             <img
-              src="/assets/ojastack.png"
+              src={`${import.meta.env.BASE_URL}ojastack.png`}
               alt="OjaStack"
               className="h-2/3 w-2/3"
             />
