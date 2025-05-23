@@ -117,8 +117,8 @@ const CartModal = ({ isOpen, onClose, onCheckout, onOrderStatus }: CartModalProp
   if (items.length === 0) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-white text-gray-900 sm:max-w-[600px]">
-          <div className="p-6 text-center">
+        <DialogContent className="bg-white text-gray-900 sm:max-w-[600px] mx-auto px-5 sm:px-6 max-w-[90%] rounded-lg">
+          <div className="p-4 md:p-6 text-center">
             <h2 className="text-xl font-semibold mb-2 text-gray-900">Your cart is empty</h2>
             <p className="text-gray-600">Start adding some items to your cart!</p>
           </div>
@@ -130,9 +130,9 @@ const CartModal = ({ isOpen, onClose, onCheckout, onOrderStatus }: CartModalProp
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="bg-white text-gray-900 sm:max-w-[600px] flex flex-col h-[85vh] p-0">
+        <DialogContent className="bg-white text-gray-900 sm:max-w-[600px] flex flex-col h-[85vh] py-0 px-5 sm:p-0 mx-2 md:mx-auto">
           {/* Header */}
-          <div className="flex justify-between items-center border-b p-4 bg-white">
+          <div className="flex justify-between items-center border-b p-4 px-5 sm:px-4 bg-white">
             <h2 className="text-xl font-semibold text-gray-900">
               Cart ({totalItems} {totalItems === 1 ? 'item' : 'items'})
             </h2>
@@ -143,14 +143,14 @@ const CartModal = ({ isOpen, onClose, onCheckout, onOrderStatus }: CartModalProp
 
           {/* Scrollable Items Section */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="p-4 space-y-4">
+            <div className="p-4 px-5 sm:px-4 space-y-4">
               {items.map((item) => (
                 <div
                   key={`${item.id}-${item.color || 'default'}`}
-                  className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg relative group hover:bg-gray-100 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 md:gap-4 p-3 md:p-4 bg-gray-50 rounded-lg relative group hover:bg-gray-100 transition-colors cursor-pointer"
                   onClick={() => handleProductClick(item.id)}
                 >
-                  <div className="relative w-20 h-20 flex-shrink-0">
+                  <div className="relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0">
                     <img
                       src={getProxiedImageUrl(item.image)}
                       alt={item.name}
@@ -165,21 +165,21 @@ const CartModal = ({ isOpen, onClose, onCheckout, onOrderStatus }: CartModalProp
                     )}
                     <p className="text-sm font-medium text-gray-900 mt-1">₦{item.price.toLocaleString()}</p>
 
-                    <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 md:gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1), item.color)}
-                        className="h-8 w-8 bg-white hover:bg-gray-50"
+                        className="h-7 w-7 md:h-8 md:w-8 bg-white hover:bg-gray-50"
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
-                      <span className="w-8 text-center text-gray-900">{item.quantity}</span>
+                      <span className="w-6 md:w-8 text-center text-gray-900">{item.quantity}</span>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => updateQuantity(item.id, item.quantity + 1, item.color)}
-                        className="h-8 w-8 bg-white hover:bg-gray-50"
+                        className="h-7 w-7 md:h-8 md:w-8 bg-white hover:bg-gray-50"
                       >
                         <Plus className="h-3 w-3" />
                       </Button>

@@ -24,12 +24,50 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        chatgpt: {
-          sidebar: "#171717",
-          main: "#212121",
-          secondary: "#444654",
-          hover: "#2A2B32",
-          border: "#4E4F60"
+        grok: {
+          dark: {
+            background: "#1e1e1e",
+            input: "#333333",
+            secondary: "#2a2a2a",
+            border: "#3e3e3e",
+            text: {
+              primary: "#ffffff",
+              secondary: "#a0a0a0",
+              tertiary: "#808080"
+            },
+            button: {
+              bg: "#2a2a2a",
+              hover: "#3a3a3a"
+            }
+          },
+          light: {
+            background: "#ffffff",
+            input: "#f0f0f0",
+            secondary: "#f5f5f5",
+            border: "#e0e0e0",
+            text: {
+              primary: "#1a1a1a",
+              secondary: "#505050",
+              tertiary: "#757575"
+            },
+            button: {
+              bg: "#f5f5f5",
+              hover: "#e5e5e5"
+            }
+          },
+          background: "#1e1e1e",
+          input: "#333333",
+          secondary: "#2a2a2a",
+          border: "#3e3e3e",
+          text: {
+            primary: "#ffffff",
+            secondary: "#a0a0a0",
+            tertiary: "#808080"
+          },
+          button: {
+            bg: "#2a2a2a",
+            hover: "#3a3a3a"
+          }
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",

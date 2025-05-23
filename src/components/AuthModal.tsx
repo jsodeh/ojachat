@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,20 +8,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { AuthError } from "@supabase/supabase-js";
+import ProfileSetup from "./ProfileSetup";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialMode?: AuthMode;
 }
 
 type AuthMode = 'options' | 'email-sign-in' | 'email-sign-up';
 
-const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
+const AuthModal = ({ isOpen, onClose, initialMode = 'options' }: AuthModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>('options');
+  const [authMode, setAuthMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signIn } = useAuth();
+  const [fullName, setFullName] = useState('');
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const { signIn, setNeedsProfileSetup } = useAuth();
+
+  useEffect(() => {
+    if (initialMode) {
+      setAuthMode(initialMode);
+    }
+  }, [initialMode]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -43,20 +53,40 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
       return;
     }
 
+    if (authMode === 'email-sign-up' && !fullName) {
+      toast.error('Please enter your full name');
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (authMode === 'email-sign-up') {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
+          },
         });
+        
         if (error) throw error;
+        
+        if (data?.user) {
+          // Mark as needing profile setup and show the profile setup modal
+          setNeedsProfileSetup(true);
+          setShowProfileSetup(true);
+          toast.success('Account created successfully! Please complete your profile.');
+        } else {
         toast.success('Verification email sent! Please check your inbox.');
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        
         if (error) throw error;
         toast.success('Successfully signed in!');
         onClose();
@@ -70,8 +100,28 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     }
   };
 
+  const handleProfileSetupClose = () => {
+    setShowProfileSetup(false);
+    onClose();
+  };
+
   const renderEmailForm = () => (
     <form onSubmit={handleEmailSubmit} className="space-y-4">
+      {authMode === 'email-sign-up' && (
+        <div className="space-y-2">
+          <Label htmlFor="fullName">Full Name</Label>
+          <Input
+            id="fullName"
+            type="text"
+            placeholder="Enter your full name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+            required
+          />
+        </div>
+      )}
+      
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <div className="relative">
@@ -82,7 +132,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="pl-10 text-black"
+            className="pl-10 bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
             required
           />
         </div>
@@ -97,7 +147,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 text-black"
+            className="pl-10 bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
             required
           />
         </div>
@@ -189,11 +239,20 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   );
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-gray-900 text-white border-gray-800">
+      <DialogContent className="sm:max-w-[425px] max-w-[90%] mx-auto px-5 sm:px-6 rounded-lg bg-gray-900 text-white border-gray-800">
         {authMode === 'options' ? renderOptions() : renderEmailForm()}
       </DialogContent>
     </Dialog>
+      
+      {showProfileSetup && (
+        <ProfileSetup 
+          isOpen={showProfileSetup} 
+          onClose={handleProfileSetupClose} 
+        />
+      )}
+    </>
   );
 };
 

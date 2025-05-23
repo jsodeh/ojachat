@@ -1,8 +1,71 @@
-import { useState } from "react";
-import { ArrowUp, Loader2, Paperclip, Mic, Plus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowUp, Loader2, Paperclip, Mic, Camera, Crown } from "lucide-react";
 import { useAnimatedHints } from '@/hooks/use-animated-hints';
 import { useLocation } from '@/hooks/use-location';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import VoiceModal from "./VoiceModal";
+import MoreOptionsDialog from "./MoreOptionsDialog";
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthWrapper } from '@/components/AuthWrapper';
+
+// Attachment options menu component
+const AttachmentMenu = ({ 
+  isOpen, 
+  onClose, 
+  position,
+  onSelectOption 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void;
+  position: { top: number; left: number } | null;
+  onSelectOption: (option: string) => void;
+}) => {
+  if (!isOpen || !position) return null;
+
+  const handleOptionClick = (option: string) => {
+    onSelectOption(option);
+    onClose();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClose();
+  };
+
+  return (
+    <>
+      <div 
+        className="fixed inset-0 z-40"
+        onClick={handleBackdropClick}
+      />
+      <div 
+        className="fixed z-50 w-52 bg-grok-light-secondary dark:bg-grok-dark-secondary rounded-lg shadow-lg border border-grok-light-border dark:border-grok-dark-border overflow-hidden"
+        style={{
+          top: position.top,
+          left: position.left
+        }}
+      >
+        <div className="p-1">
+          <button 
+            className="flex items-center gap-2 w-full p-2 text-sm rounded-md hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover text-left"
+            onClick={() => handleOptionClick('picture')}
+          >
+            <Camera className="h-4 w-4" />
+            <span>Take a picture</span>
+          </button>
+          
+          <button 
+            className="flex items-center gap-2 w-full p-2 text-sm rounded-md hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover text-left"
+            onClick={() => handleOptionClick('voice')}
+          >
+            <Mic className="h-4 w-4" />
+            <span>Send a Voice note</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
 
 interface ChatInputProps {
   onSend: (message: string, sessionId: string) => void;
@@ -14,13 +77,44 @@ interface ChatInputProps {
 
 const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: ChatInputProps) => {
   const [message, setMessage] = useState("");
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
+  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [moreOptionsPosition, setMoreOptionsPosition] = useState<{ top: number; left: number } | null>(null);
+  const [attachmentMenuPosition, setAttachmentMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const moreOptionsButtonRef = useRef<HTMLButtonElement>(null);
+  const attachmentButtonRef = useRef<HTMLButtonElement>(null);
+  
   const { location } = useLocation();
   const { currentText } = useAnimatedHints({
     location: location?.area
   });
 
+  // Get authentication state
+  const { isAuthenticated } = useAuth();
+  const authWrapper = useAuthWrapper();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const handleSubmit = () => {
     if (message.trim() && !isLoading) {
+      // Check if user is authenticated before sending message
+      if (!isAuthenticated) {
+        // Trigger auth modal
+        authWrapper.showAuthModal();
+        return;
+      }
+      
       onSend(message, sessionId);
       setMessage("");
     }
@@ -33,45 +127,158 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
     }
   };
 
+  const handleVoiceTranscript = (text: string) => {
+    setMessage(text);
+    setIsVoiceModalOpen(false);
+  };
+
+  const handleVoiceMode = () => {
+    // Check authentication before opening voice modal
+    if (!isAuthenticated) {
+      authWrapper.showAuthModal();
+      return;
+    }
+    
+    setIsVoiceModalOpen(true);
+  };
+
+  const handleVoiceModalToggle = () => {
+    setIsVoiceModalOpen(!isVoiceModalOpen);
+  };
+  
+  const handleOpenMoreOptions = () => {
+    // Check authentication before opening more options
+    if (!isAuthenticated) {
+      authWrapper.showAuthModal();
+      return;
+    }
+    
+    if (moreOptionsButtonRef.current) {
+      const rect = moreOptionsButtonRef.current.getBoundingClientRect();
+      const dialogHeight = 300; // Approximate height of dialog
+      
+      // Use clientY/clientX to get viewport position, accounting for scroll
+      setMoreOptionsPosition({
+        top: rect.top,
+        left: Math.max(10, rect.left - 100) // Ensure it's not off-screen on the left
+      });
+    }
+    setIsMoreOptionsOpen(true);
+  };
+
+  const handleOpenAttachmentMenu = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
+    
+    // Check authentication before opening attachment menu
+    if (!isAuthenticated) {
+      authWrapper.showAuthModal();
+      return;
+    }
+    
+    // Create a fixed position directly at the cursor location in the viewport
+    const menuPosition = {
+      top: e.clientY,
+      left: e.clientX
+    };
+    
+    setAttachmentMenuPosition(menuPosition);
+    setIsAttachmentMenuOpen(true);
+    
+    // Add a click handler to the document to close the menu when clicking elsewhere
+    document.addEventListener('click', handleCloseAttachmentMenu);
+  };
+  
+  const handleCloseAttachmentMenu = () => {
+    setIsAttachmentMenuOpen(false);
+    document.removeEventListener('click', handleCloseAttachmentMenu);
+  };
+
+  const handleAttachmentSelect = (option: string) => {
+    console.log(`Selected attachment option: ${option}`);
+    // Handle the attachment selection
+  };
+
   return (
-    <div className="relative flex w-full flex-col items-center pb-4">
-      <div className="relative w-full">
-        <div className={`relative w-full bg-[#2F2F2F] rounded-[8px]`}>
-          <textarea
-            rows={isLarge ? 3 : 1}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isLoading ? "Connecting to service..." : currentText}
-            className="w-full resize-none px-4 pr-12 pt-4 pb-16 focus:outline-none bg-transparent min-h-[100px]"
-            style={{ maxHeight: isLarge ? "300px" : "200px" }}
-            disabled={isLoading}
-          />
+    <div className="relative w-full">
+      <textarea
+        rows={isLarge ? 4 : 3}
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={isLoading ? "Connecting to service..." : "What do you want to know?"}
+        className="grok-input w-full text-base"
+        style={{ minHeight: isLarge ? "140px" : "120px" }}
+        disabled={isLoading}
+      />
+      
+      <div className="absolute bottom-4 left-4 flex items-center gap-2 text-grok-light-text-secondary dark:text-grok-dark-text-secondary">
+        {!isMobile && (
           <button 
-            onClick={handleSubmit}
-            disabled={isLoading || !message.trim()}
-            className="absolute right-3 bottom-3 p-1.5 bg-white rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            ref={attachmentButtonRef}
+            onClick={handleOpenAttachmentMenu}
+            className="p-2 rounded-full bg-grok-light-button-bg dark:bg-grok-dark-button-bg border border-grok-light-border dark:border-grok-dark-border hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover"
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 text-black animate-spin" />
-            ) : (
-              <ArrowUp className="h-4 w-4 text-black" />
-            )}
+            <Paperclip className="h-5 w-5" />
           </button>
-          <div className="absolute bottom-3 left-4 flex items-center gap-2">
-            <button className="p-1.5 hover:bg-gray-700 rounded-full">
-              <Plus className="h-4 w-4 text-gray-400" />
-            </button>
-            <ToggleGroup type="single" className="gap-2" value={undefined} onValueChange={() => {}}>
-              <ToggleGroupItem value="voice" className="flex items-center justify-center w-10 h-10 bg-gray-700 text-white hover:bg-gray-600 data-[state=on]:bg-gray-500 rounded-full">
-                <Mic className="h-5 w-5" />
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        </div>
+        )}
+        
+        <button 
+          ref={moreOptionsButtonRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenMoreOptions();
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full text-white border border-grok-light-border dark:border-grok-dark-border cursor-pointer hover:opacity-90 transition-opacity"
+          style={{
+            background: "linear-gradient(135deg, #12b76a 0%, #16a34a 50%, #15803d 100%)"
+          }}
+        >
+          <Crown className="h-5 w-5" />
+          <span className="text-sm font-medium">Do More</span>
+        </button>
       </div>
-      {isLoading && (
-        <p className="text-xs text-gray-400 mt-1">Processing your message...</p>
+      
+      <div className="absolute bottom-4 right-4 flex items-center gap-2">
+        <button 
+          onClick={handleVoiceMode}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-grok-light-button-bg dark:bg-grok-dark-button-bg border border-grok-light-border dark:border-grok-dark-border hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover"
+        >
+          <Mic className="h-5 w-5" />
+          <span className="text-sm">Voice Mode</span>
+        </button>
+        
+        <button 
+          onClick={handleSubmit}
+          disabled={isLoading || !message.trim()}
+          className="p-2 rounded-full bg-grok-light-button-bg dark:bg-grok-dark-button-bg border border-grok-light-border dark:border-grok-dark-border hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover disabled:opacity-50"
+        >
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <ArrowUp className="h-5 w-5" />
+          )}
+        </button>
+      </div>
+
+      <VoiceModal
+        isOpen={isVoiceModalOpen}
+        onClose={handleVoiceModalToggle}
+        onTranscript={handleVoiceTranscript}
+      />
+      
+      <MoreOptionsDialog
+        isOpen={isMoreOptionsOpen}
+        onClose={() => setIsMoreOptionsOpen(false)}
+        position={moreOptionsPosition}
+      />
+
+      {isAttachmentMenuOpen && (
+        <AttachmentMenu
+          isOpen={isAttachmentMenuOpen}
+          onClose={handleCloseAttachmentMenu}
+          position={attachmentMenuPosition}
+          onSelectOption={handleAttachmentSelect}
+        />
       )}
     </div>
   );

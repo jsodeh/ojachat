@@ -38,7 +38,10 @@ export const useAnimatedHints = ({
           .from('page_content')
           .select('content')
           .eq('content_type', 'hint')
-          .textSearch('content', location);
+          .textSearch('content', location, {
+            type: 'websearch',
+            config: 'english'
+          });
 
         if (error) throw error;
 

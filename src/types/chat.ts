@@ -3,6 +3,7 @@ export type MessageRole = 'user' | 'assistant' | 'system';
 export interface ActionButton {
   label: string;
   action: string;
+  onClick?: (content: string, sessionId: string) => void;
 }
 
 export interface Product {
@@ -45,11 +46,13 @@ export interface MessageContent {
   products?: Product[];
   actionButtons?: ActionButton[];
   richComponent?: RichComponent;
+  rawResponse?: any;
 }
 
 export interface Message {
   role: MessageRole;
   content: MessageContent;
+  timestamp?: number;
 }
 
 export type ChatSession = {

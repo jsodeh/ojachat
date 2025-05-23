@@ -11,7 +11,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@11labs/client": "^0.1.4",
+    "@11labs/react": "^0.1.4",
     "@hookform/resolvers": "^3.9.0",
+    "@modelcontextprotocol/sdk": "^1.11.4",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -69,6 +72,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@supabase/mcp-server-supabase": "^0.4.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/google.maps": "^3.58.1",
     "@types/node": "^22.14.1",
@@ -85,6 +89,14 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
-  }
+    "vite": "^5.4.19"
+  },
+  "description": "## Project info",
+  "main": "eslint.config.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
