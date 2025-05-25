@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowUp, Loader2, Paperclip, Mic, Camera, Crown } from "lucide-react";
+import { ArrowUp, Loader2, Paperclip, Mic, Camera, Crown, Plus } from "lucide-react";
 import { useAnimatedHints } from '@/hooks/use-animated-hints';
 import { useLocation } from '@/hooks/use-location';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -7,6 +7,11 @@ import VoiceModal from "./VoiceModal";
 import MoreOptionsDialog from "./MoreOptionsDialog";
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthWrapper } from '@/components/AuthWrapper';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import OptionsModal from "./OptionsModal";
+import AttachmentModal from "./AttachmentModal";
 
 // Attachment options menu component
 const AttachmentMenu = ({ 
@@ -73,9 +78,11 @@ interface ChatInputProps {
   isLarge?: boolean;
   sessionId: string;
   key?: string;
+  onAttachment: (option: string) => void;
+  onOptionSelect: (option: string) => void;
 }
 
-const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: ChatInputProps) => {
+const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId, onAttachment, onOptionSelect }: ChatInputProps) => {
   const [message, setMessage] = useState("");
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -92,8 +99,10 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
   });
 
   // Get authentication state
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const authWrapper = useAuthWrapper();
+  const { subscription } = useSubscription();
+  const isPaidUser = subscription?.status === 'active';
 
   useEffect(() => {
     const checkMobile = () => {
@@ -147,23 +156,12 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
   };
   
   const handleOpenMoreOptions = () => {
-    // Check authentication before opening more options
-    if (!isAuthenticated) {
-      authWrapper.showAuthModal();
-      return;
+    if (!isPaidUser) {
+      // Show subscription modal for free users
+      window.dispatchEvent(new CustomEvent('ojachat:show-subscription-modal'));
+    } else {
+      setIsMoreOptionsOpen(true);
     }
-    
-    if (moreOptionsButtonRef.current) {
-      const rect = moreOptionsButtonRef.current.getBoundingClientRect();
-      const dialogHeight = 300; // Approximate height of dialog
-      
-      // Use clientY/clientX to get viewport position, accounting for scroll
-      setMoreOptionsPosition({
-        top: rect.top,
-        left: Math.max(10, rect.left - 100) // Ensure it's not off-screen on the left
-      });
-    }
-    setIsMoreOptionsOpen(true);
   };
 
   const handleOpenAttachmentMenu = (e: React.MouseEvent) => {
@@ -195,7 +193,7 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
 
   const handleAttachmentSelect = (option: string) => {
     console.log(`Selected attachment option: ${option}`);
-    // Handle the attachment selection
+    onAttachment(option);
   };
 
   return (
@@ -233,7 +231,11 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId }: Ch
             background: "linear-gradient(135deg, #12b76a 0%, #16a34a 50%, #15803d 100%)"
           }}
         >
-          <Crown className="h-5 w-5" />
+          {isPaidUser ? (
+            <Plus className="h-5 w-5" />
+          ) : (
+            <Crown className="h-5 w-5 text-yellow-500" />
+          )}
           <span className="text-sm font-medium">Do More</span>
         </button>
       </div>

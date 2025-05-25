@@ -72,7 +72,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
-    "@supabase/mcp-server-supabase": "^0.4.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/google.maps": "^3.58.1",
     "@types/node": "^22.14.1",

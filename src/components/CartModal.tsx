@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { Minus, Plus, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from '@/lib/supabase';
 import OrderStatusWidget from "./OrderStatusWidget";
 import { OrderStatus } from "@/types/chat";
 import AuthModal from "./AuthModal";
@@ -35,7 +35,6 @@ const CartModal = ({ isOpen, onClose, onCheckout, onOrderStatus }: CartModalProp
       return;
     }
     setIsProcessing(true);
-    const supabase = createClient();
     
     try {
       // Get the current user
