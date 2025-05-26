@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { isAdmin } from '@/lib/utils/admin';
 
 interface UsageItemProps {
   label: string;
@@ -37,6 +38,7 @@ const UsageItem = ({ label, used, limit, className = '' }: UsageItemProps) => {
 export function SubscriptionUsage() {
   const { currentSubscription, usage, loading, error, refreshUsage } = useSubscription();
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [refresh, setRefresh] = useState(false);
 
   useEffect(() => {
@@ -47,6 +49,14 @@ export function SubscriptionUsage() {
       });
       setUsageMap(map);
     }
+  }, [usage]);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const adminStatus = await isAdmin();
+      setIsSuperAdmin(adminStatus);
+    };
+    checkAdminStatus();
   }, [usage]);
 
   if (loading) {
@@ -65,6 +75,13 @@ export function SubscriptionUsage() {
   const getUsage = (featureName: string) => usageMap[featureName] || 0;
 
   return (
+    <>
+      {isSuperAdmin ? (
+        <div className="p-4 bg-white rounded-lg shadow">
+          <h2 className="text-xl font-bold mb-4">Your Usage</h2>
+          <p>You have unlimited access as a super admin.</p>
+        </div>
+      ) : (
     <div className="p-4 bg-white rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Your Usage</h2>
@@ -129,5 +146,7 @@ export function SubscriptionUsage() {
         />
       )}
     </div>
+      )}
+    </>
   );
 } 

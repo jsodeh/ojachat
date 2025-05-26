@@ -1,4 +1,4 @@
-export type SubscriptionPlan = 'free' | 'basic' | 'premium';
+export type SubscriptionPlan = 'free' | 'Basic' | 'Premium' | 'PRIME';
 export type SubscriptionStatus = 'active' | 'inactive' | 'cancelled' | 'trial';
 export type SubscriptionFeature = 
   | 'text_chat'
@@ -11,7 +11,10 @@ export type SubscriptionFeature =
   | 'auto_shopper'
   | 'follow_up_calls'
   | 'web_shopper'
-  | 'food_delivery'
+  | 'market_run' // Changed from food_delivery to market_run
+  | 'live_shopper_mode' // Added live_shopper_mode
+  | 'auto_shopper_mode' // Added auto_shopper_mode
+  | 'whatsapp_and_sms_connect' // Added whatsapp_and_sms_connect
   | 'shop_online';
 
 export interface Subscription {
@@ -29,7 +32,7 @@ export interface Subscription {
   auto_renew: boolean;
   price: number;
   currency: string;
-  billing_cycle: 'monthly' | 'yearly';
+  billing_cycle: 'monthly'; // Changed billing cycle to only monthly
   delivery_credits: number;
   delivery_credit_cost: number;
 }

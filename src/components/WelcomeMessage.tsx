@@ -17,24 +17,23 @@ const WelcomeMessage = ({ className }: WelcomeMessageProps) => {
   useEffect(() => {
     const hours = new Date().getHours();
     if (hours < 12) {
-      setTimeGreeting('good morning');
+      setTimeGreeting('morning');
     } else if (hours < 18) {
-      setTimeGreeting('good afternoon');
+      setTimeGreeting('afternoon');
     } else {
-      setTimeGreeting('good evening');
+      setTimeGreeting('evening');
     }
   }, []);
 
-  const fullGreeting = `Hello, ${timeGreeting}`;
+  const fullGreeting = isAuthenticated
+    ? `Good ${timeGreeting}${name ? ', ' + name : ''}`
+    : `Hello, good ${timeGreeting}`;
 
   return (
     <div className={cn("grok-welcome-container", className)}>
       <h1 className="grok-welcome-title text-2xl md:text-3xl mb-1">
-        {isAuthenticated ? `${fullGreeting}, ${name}` : fullGreeting}
+        {fullGreeting}
       </h1>
-      <h2 className="grok-welcome-subtitle text-lg md:text-xl mb-4">
-        How can I help you today?
-      </h2>
     </div>
   );
 };

@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS subscription_usage (
 -- Insert the specified subscription plans
 INSERT INTO subscription_plans (name, description, price, currency, interval_type, features, limits)
 VALUES 
+  -- Free Plan
   (
     'Basic Plan', 
     'Free tier with limited usage', 
@@ -54,74 +55,126 @@ VALUES
     'NGN',
     'monthly',
     '{
-      "standard_support": true,
+      "text_chat": true,
       "image_shopping": true,
       "online_shopping": true,
       "group_shopping": false,
       "auto_shopper": false,
       "voice_mode": true,
-      "free_deliveries": false
+      "free_deliveries": false,
+      "self_pickup": true,
+      "pay_per_delivery": true,
+      "add_to_cart": true
     }',
     '{
-      "chats_per_month": 10,
-      "words_per_month": 1000,
-      "voice_minutes_per_month": 10,
-      "image_shopping_count": 5,
-      "online_shopping_count": 5,
+      "chats_per_month": 20,
+      "words_per_month": 0, -- Free tier is text-based only, words limit not applicable
+      "voice_minutes_per_month": 0, -- No voice mode for free
+      "image_search_count": -1, -- Unlimited image search for free
+      "online_shopping_count": 0, -- No free online shopping for free
       "free_deliveries_count": 0
     }'
   ),
   
+  -- Basic Paid Plan
   (
-    'Market PRO', 
-    'Premium features with increased limits', 
+    'Basic', 
+    'Enhanced features for growing needs', 
     25000.00, 
     'NGN',
     'monthly',
     '{
-      "standard_support": true,
       "priority_support": true,
       "image_shopping": true,
-      "online_shopping": true,
-      "group_shopping": true,
+      "online_shopping": false, -- Online shopping is a feature of higher tiers
+      "group_shopping": false, -- Group shopping is a feature of higher tiers
       "auto_shopper": false,
       "voice_mode": true,
-      "free_deliveries": false
+      "free_deliveries": false,
+      "self_pickup": true,
+      "pay_per_delivery": true,
+      "add_to_cart": true,
+      "market_runs": true
     }',
     '{
-      "chats_per_month": -1,
-      "words_per_month": 10000,
-      "voice_minutes_per_month": 120,
-      "image_shopping_count": 20,
-      "online_shopping_count": 20,
+      "chats_per_month": 100,
+      "words_per_month": 2000,
+      "voice_minutes_per_month": 15,
+      "image_search_count": -1, -- Unlimited image search
+      "online_shopping_count": 0,
+      "market_runs_count": 2,
       "free_deliveries_count": 0
     }'
   ),
   
+  -- Premium Paid Plan
   (
-    'OjaPRIME', 
-    'Full access with unlimited usage and premium features', 
-    150000.00, 
+    'Premium', 
+    'Advanced features and higher limits', 
+    80000.00, 
     'NGN',
     'monthly',
     '{
       "standard_support": true,
       "priority_support": true,
       "premium_support": true,
-      "image_shopping": true,
-      "online_shopping": true,
+      "image_shopping": true, 
+      "online_shopping": false, -- Online shopping is a feature of higher tiers
       "group_shopping": true,
-      "auto_shopper": true,
+      "auto_shopper": false,
       "voice_mode": true,
-      "free_deliveries": true
+      "free_deliveries": false,
+      "self_pickup": true,
+      "pay_per_delivery": true,
+      "add_to_cart": true,
+      "market_runs": true,
+      "sms_mode": true -- New feature for Premium
     }',
     '{
-      "chats_per_month": -1,
-      "words_per_month": -1,
-      "voice_minutes_per_month": -1,
-      "image_shopping_count": -1,
-      "online_shopping_count": -1,
-      "free_deliveries_count": 10
+      "chats_per_month": -1, -- Unlimited
+      "words_per_month": -1, -- Unlimited
+      "voice_minutes_per_month": 60, -- Up to 1 hour voice mode
+      "image_search_count": -1, -- Unlimited
+      "online_shopping_count": 0,
+      "market_runs_count": 5,
+      "free_deliveries_count": 0
+    }'
+  ),
+
+  -- PRIME Paid Plan
+  (
+    'PRIME', 
+    'Ultimate access with all features and unlimited usage', 
+    150000.00, 
+    'NGN',
+    'monthly',
+    '{
+      "standard_support": true, -- Assuming all support levels are included
+      "priority_support": true,
+      "premium_support": true,
+      "image_shopping": true,
+      "online_shopping": true, -- Unlimited online shopping
+      "group_shopping": true,
+      "auto_shopper": true, -- Auto Shopper Mode
+      "voice_mode": true, -- Unlimited Voice Mode
+      "free_deliveries": true, -- Although not explicitly mentioned as free deliveries, the description implies full access
+      "self_pickup": true,
+      "pay_per_delivery": true, -- Still applicable for physical deliveries
+      "add_to_cart": true,
+      "market_runs": true,
+      "sms_connect": true, -- WhatsApp and SMS Connect
+      "whatsapp_connect": true, -- WhatsApp and SMS Connect
+      "phone_call_back": true, -- Phone Call Back
+      "live_shopper_mode": true -- Live Shopper Mode
+    }',
+    '{
+      "chats_per_month": -1, -- Unlimited
+      "words_per_month": -1, -- Unlimited
+      "voice_minutes_per_month": -1, -- Unlimited Voice Mode
+      "image_search_count": -1, -- Unlimited
+      "online_shopping_count": -1, -- Unlimited online shopping
+      "market_runs_count": 10,
+      "free_deliveries_count": 0 -- Free deliveries not explicitly mentioned, but all features unlimited implies delivery costs covered or included in price. Assuming not free deliveries but unlimited 'online_shopping' which could imply delivery for online purchases.
     }'
   );
 

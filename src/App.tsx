@@ -1,25 +1,9 @@
 import React from "react";
 import { AuthProvider } from '@/contexts/AuthContext';
-import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { Toaster } from 'sonner';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { ElevenLabsProvider } from '@/providers/ElevenLabsProvider';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { useAuth } from '@/contexts/AuthContext';
-import AuthWrapper from '@/components/AuthWrapper';
-import AuthModal from '@/components/AuthModal';
-import SubscriptionModal from '@/components/SubscriptionModal';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import AdminLayout from '@/app/admin/layout';
-import AdminLogin from '@/app/admin/login/page';
-import AdminDashboard from '@/components/admin/AdminDashboard';
-import UserManagement from '@/components/admin/UserManagement';
-import SubscriptionManagement from '@/components/admin/SubscriptionManagement';
-import OrderManagement from '@/components/admin/OrderManagement';
-import TransactionManagement from '@/components/admin/TransactionManagement';
-import Analytics from '@/components/admin/Analytics';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import Settings from '@/components/admin/Settings';
 import AuditLogs from '@/components/admin/AuditLogs';
 import UserActivity from '@/components/admin/UserActivity';
@@ -28,6 +12,14 @@ import SystemBackups from '@/components/admin/SystemBackups';
 import SystemLogs from '@/components/admin/SystemLogs';
 import Index from '@/pages/Index';
 import DeliveryCheckoutWrapper from '@/components/DeliveryCheckoutWrapper';
+import { ElevenLabsProvider } from '@/providers/ElevenLabsProvider';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthWrapper from '@/components/AuthWrapper';
+import AuthModal from '@/components/AuthModal';
+import SubscriptionModal from '@/components/SubscriptionModal';
+import ErrorBoundary from '@/components/ErrorBoundary';
+
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionHistory from '@/components/SubscriptionHistory';
 import Privacy from '@/pages/Privacy';
@@ -108,35 +100,6 @@ export default function App() {
                 <CartProvider>
                   <ElevenLabsProvider>
                     <Routes>
-                      {/* Admin Routes */}
-                      <Route
-                        path="/admin"
-                        element={
-                          <AdminAuthProvider>
-                            <AdminLayout>
-                              <Outlet />
-                            </AdminLayout>
-                          </AdminAuthProvider>
-                        }
-                      >
-                        <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                        <Route path="login" element={<AdminLogin />} />
-                        <Route path="dashboard" element={<AdminDashboard />} />
-                        <Route path="users" element={<UserManagement />} />
-                        <Route path="subscriptions" element={<SubscriptionManagement />} />
-                        <Route path="orders" element={<OrderManagement />} />
-                        <Route path="transactions" element={<TransactionManagement />} />
-                        <Route path="analytics" element={<Analytics />} />
-                        <Route path="settings" element={<Settings />} />
-                        <Route path="audit-logs" element={<AuditLogs />} />
-                        <Route path="user-activity" element={<UserActivity />} />
-                        <Route path="system-health" element={<SystemHealth />} />
-                        <Route path="system-backups" element={<SystemBackups />} />
-                        <Route path="system-logs" element={<SystemLogs />} />
-                        <Route path="subscription" element={<SubscriptionPlans />} />
-                        <Route path="subscription/history" element={<SubscriptionHistory />} />
-                      </Route>
-
                       {/* Main App Routes */}
                       <Route path="/" element={
                         <AuthWrapper>
