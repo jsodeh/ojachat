@@ -187,6 +187,27 @@ const ProfileSetup = ({ isOpen, onClose }: ProfileSetupProps) => {
     }
   };
   
+  // If user is not present, prompt to sign in again
+  if (!user || !user.id) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Complete Your Profile</DialogTitle>
+          </DialogHeader>
+          <div className="py-8 text-center text-red-600 font-medium">
+            User not found. Please sign in again.
+          </div>
+          <div className="flex justify-end">
+            <Button type="button" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open && !isLoading) {

@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthWrapper from '@/components/AuthWrapper';
 import AuthModal from '@/components/AuthModal';
+import SubscriptionModal from '@/components/SubscriptionModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import AdminLayout from '@/app/admin/layout';
 import AdminLogin from '@/app/admin/login/page';
@@ -60,13 +61,36 @@ function AuthModalHandler() {
   return (
     <AuthModal
       isOpen={showAuthModal}
-      onClose={() => {
-        // Allow closing the modal, but only if authenticated
-        if (isAuthenticated) {
-          setShowAuthModal(false);
-        }
-      }}
+      onClose={() => setShowAuthModal(false)}
       initialMode="options"
+    />
+  );
+}
+
+// Component to handle subscription modal display
+function SubscriptionModalHandler() {
+  const [showSubscriptionModal, setShowSubscriptionModal] = React.useState(false);
+
+  React.useEffect(() => {
+    // Listen for custom events to show/hide subscription modal
+    const handleShowModal = () => {
+      setShowSubscriptionModal(true);
+    };
+    const handleHideModal = () => {
+      setShowSubscriptionModal(false);
+    };
+    window.addEventListener('ojachat:show-subscription-modal', handleShowModal);
+    window.addEventListener('ojachat:hide-subscription-modal', handleHideModal);
+    return () => {
+      window.removeEventListener('ojachat:show-subscription-modal', handleShowModal);
+      window.removeEventListener('ojachat:hide-subscription-modal', handleHideModal);
+    };
+  }, []);
+
+  return (
+    <SubscriptionModal
+      isOpen={showSubscriptionModal}
+      onClose={() => setShowSubscriptionModal(false)}
     />
   );
 }
@@ -121,6 +145,7 @@ export default function App() {
                       {/* Add more main app routes here */}
                     </Routes>
                     <AuthModalHandler />
+                    <SubscriptionModalHandler />
                     <Toaster />
                   </ElevenLabsProvider>
                 </CartProvider>

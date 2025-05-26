@@ -25,6 +25,8 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'options' }: AuthModalProps)
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [emailVerificationNotice, setEmailVerificationNotice] = useState<string | null>(null);
+  const [resendLoading, setResendLoading] = useState(false);
   const { signIn, setNeedsProfileSetup } = useAuth();
 
   useEffect(() => {
@@ -73,13 +75,16 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'options' }: AuthModalProps)
         
         if (error) throw error;
         
-        if (data?.user) {
-          // Mark as needing profile setup and show the profile setup modal
+        if (data?.session) {
+          // User is authenticated, show profile setup
           setNeedsProfileSetup(true);
           setShowProfileSetup(true);
           toast.success('Account created successfully! Please complete your profile.');
         } else {
-        toast.success('Verification email sent! Please check your inbox.');
+          // No session, email verification required
+          setEmailVerificationNotice('Account created! Please check your email to verify your account before continuing.');
+          toast.success('Account created! Please check your email to verify your account before continuing.');
+          // Do NOT show profile setup modal
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -103,6 +108,27 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'options' }: AuthModalProps)
   const handleProfileSetupClose = () => {
     setShowProfileSetup(false);
     onClose();
+  };
+
+  // Resend verification email handler
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first.');
+      return;
+    }
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) throw error;
+      toast.success('Verification email resent! Please check your inbox.');
+    } catch (err) {
+      toast.error('Failed to resend verification email.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const renderEmailForm = () => (
@@ -242,6 +268,20 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'options' }: AuthModalProps)
     <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] max-w-[90%] mx-auto px-5 sm:px-6 rounded-lg bg-gray-900 text-white border-gray-800">
+        {emailVerificationNotice && (
+          <div className="mb-4 p-3 rounded bg-yellow-100 text-yellow-800 text-center font-medium flex flex-col items-center gap-2">
+            <span>{emailVerificationNotice} After verifying, please refresh or sign in again.</span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              onClick={handleResendVerification}
+              disabled={resendLoading}
+            >
+              {resendLoading ? 'Resending...' : 'Resend Verification Email'}
+            </Button>
+          </div>
+        )}
         {authMode === 'options' ? renderOptions() : renderEmailForm()}
       </DialogContent>
     </Dialog>
