@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
-import { isAdmin } from '@/lib/utils/admin';
 
 interface UsageItemProps {
   label: string;
@@ -49,14 +48,6 @@ export function SubscriptionUsage() {
       });
       setUsageMap(map);
     }
-  }, [usage]);
-
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      const adminStatus = await isAdmin();
-      setIsSuperAdmin(adminStatus);
-    };
-    checkAdminStatus();
   }, [usage]);
 
   if (loading) {
