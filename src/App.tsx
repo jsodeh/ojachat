@@ -30,6 +30,8 @@ import Index from '@/pages/Index';
 import DeliveryCheckoutWrapper from '@/components/DeliveryCheckoutWrapper';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionHistory from '@/components/SubscriptionHistory';
+import Privacy from '@/pages/Privacy';
+import Terms from '@/pages/Terms';
 import './styles/globals.css';
 
 // Component to handle auth modal display
@@ -142,6 +144,8 @@ export default function App() {
                         </AuthWrapper>
                       } />
                       <Route path="delivery/checkout" element={<DeliveryCheckoutWrapper />} />
+                      <Route path="/privacy" element={<Privacy />} />
+                      <Route path="/terms" element={<Terms />} />
                       {/* Add more main app routes here */}
                     </Routes>
                     <AuthModalHandler />
