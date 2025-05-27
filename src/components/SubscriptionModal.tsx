@@ -1,82 +1,89 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Check, ShoppingCart, MessageSquare, Clock, Image, Users, Truck } from "lucide-react";
+import { Check, MessageSquare, Mic, Zap, Headphones, Clock, Paperclip } from "lucide-react";
 
 interface SubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type BillingCycle = "monthly" | "annually";
+type TabOption = "free" | "monthly";
 
 const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) => {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [activeTab, setActiveTab] = useState<TabOption>("monthly");
 
-  const plans = [
+  const freePlan = {
+    id: "c6d481ea-cbfa-4358-a34f-dde048c31052",
+    name: "Free",
+    description: "Pay as you go",
+    price: 0,
+    features: [
+      { text: "50 messages per month", included: true },
+      { text: "Chat messages", included: true },
+      { text: "Voice chat", included: false },
+      { text: "File attachments", included: false },
+      { text: "Priority support", included: false },
+      { text: "Early access features", included: false }
+    ],
+    color: "bg-white dark:bg-gray-800"
+  };
+
+  const monthlyPlans = [
     {
+      id: "b7f6131d-9392-46a4-bdb8-583a24e6797b",
       name: "Basic",
-      description: "For personal use with self pickup.",
-      monthlyPrice: 0,
-      annualPrice: 0,
+      description: "Essential features for everyday use",
+      price: 25,
       features: [
-        "20 Chats per month",
-        "500 words per month",
-        "5 Minutes voice mode",
-        "Self Pickup",
-        "Standard support"
+        { text: "500 messages per month", included: true },
+        { text: "Chat messages", included: true },
+        { text: "Voice chat", included: true },
+        { text: "10 MB file attachments", included: true },
+        { text: "Priority support", included: false },
+        { text: "Early access features", included: false }
       ],
       popular: false,
       color: "bg-white dark:bg-gray-800"
     },
     {
-      name: "Market PRO",
-      description: "Enhanced features with home deliveries.",
-      monthlyPrice: 25000,
-      annualPrice: 250000,
+      id: "6b8def17-e5a8-4aa1-b5f8-f055661b3eb8",
+      name: "Premium",
+      description: "Advanced features with priority support",
+      price: 80,
       features: [
-        "100 chats per month",
-        "2,000 words per month",
-        "30 Minutes voice mode",
-        "2 Home Deliveries",
-        "Image shopping (20 Max)",
-        "Online shopping",
-        "Priority support"
+        { text: "2,000 messages per month", included: true },
+        { text: "Chat messages", included: true },
+        { text: "Voice chat", included: true },
+        { text: "25 MB file attachments", included: true },
+        { text: "Priority support", included: true },
+        { text: "Early access features", included: false }
       ],
       popular: true,
       color: "bg-green-50 dark:bg-green-900"
     },
     {
-      name: "OjaPRIME",
-      description: "Premium plan with unlimited features.",
-      monthlyPrice: 150000,
-      annualPrice: 1620000,
+      id: "01c33418-cfe8-4565-90fa-685f92706224",
+      name: "Prime",
+      description: "Ultimate access with all features",
+      price: 150,
       features: [
-        "Unlimited chats",
-        "Unlimited words",
-        "Unlimited voice mode",
-        "Unlimited image shopping",
-        "Unlimited online shopping",
-        "10 Home deliveries",
-        "Auto shopper",
-        "24/7 Premium support"
+        { text: "Unlimited messages", included: true },
+        { text: "Chat messages", included: true },
+        { text: "Voice chat", included: true },
+        { text: "50 MB file attachments", included: true },
+        { text: "Priority support", included: true },
+        { text: "Early access features", included: true }
       ],
       popular: false,
       color: "bg-white dark:bg-gray-800"
     }
   ];
 
-  const handlePlanSelect = (planName: string) => {
-    console.log(`Selected plan: ${planName}`);
+  const handlePlanSelect = (planId: string, planName: string) => {
+    console.log(`Selected plan: ${planName} (ID: ${planId})`);
     // Implement payment processing logic here
     onClose();
-  };
-
-  const getDiscountPercentage = (monthly: number, annual: number) => {
-    if (monthly === 0) return 0;
-    const monthlyTotal = monthly * 12;
-    const savings = monthlyTotal - annual;
-    return Math.round((savings / monthlyTotal) * 100);
   };
 
   const formatCurrency = (amount: number) => {
@@ -89,32 +96,27 @@ const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) => {
       <DialogContent className="sm:max-w-[800px] max-w-[90%] p-0 gap-0 bg-green-50 dark:bg-gray-900 border-0 my-4 sm:my-6 max-h-[90vh] overflow-hidden">
         <div className="p-6 sm:p-8 max-w-full overflow-y-auto max-h-[80vh]">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">Choose the plan</h2>
-            <p className="text-gray-500 dark:text-gray-400">Get started now</p>
+            <h2 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">Choose your plan</h2>
+            <p className="text-gray-500 dark:text-gray-400">Select the plan that works best for you</p>
           </div>
 
-          {/* Billing toggle */}
+          {/* Tab toggle */}
           <div className="flex justify-center mb-8">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-1 inline-flex">
               <button
-                onClick={() => setBillingCycle("annually")}
+                onClick={() => setActiveTab("free")}
                 className={`px-4 py-2 rounded-md text-sm ${
-                  billingCycle === "annually"
+                  activeTab === "free"
                     ? "bg-green-600 text-white"
                     : "bg-transparent text-gray-700 dark:text-gray-300"
                 }`}
               >
-                Annually
-                {billingCycle === "annually" && (
-                  <span className="ml-2 text-xs bg-green-700 text-white px-1.5 py-0.5 rounded-full">
-                    Save 10%
-                  </span>
-                )}
+                Free
               </button>
               <button
-                onClick={() => setBillingCycle("monthly")}
+                onClick={() => setActiveTab("monthly")}
                 className={`px-4 py-2 rounded-md text-sm ${
-                  billingCycle === "monthly"
+                  activeTab === "monthly"
                     ? "bg-green-600 text-white"
                     : "bg-transparent text-gray-700 dark:text-gray-300"
                 }`}
@@ -124,70 +126,133 @@ const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) => {
             </div>
           </div>
 
-          {/* Plans grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`${plan.color} rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow relative`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-0 right-0 bg-green-600 text-white text-xs px-2 py-1 rounded-bl-lg">
-                    Most Popular
-                  </div>
-                )}
+          {/* Plans display */}
+          {activeTab === "free" ? (
+            <div className="max-w-md mx-auto">
+              <div className={`${freePlan.color} rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow`}>
                 <div className="p-6">
-                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">{plan.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{plan.description}</p>
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">{freePlan.name}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{freePlan.description}</p>
                   
                   <div className="mb-6">
                     <div className="flex items-baseline">
-                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {formatCurrency(billingCycle === "monthly" ? plan.monthlyPrice : Math.round(plan.annualPrice / 12))}
-                      </span>
-                      {plan.monthlyPrice > 0 && <span className="text-gray-500 dark:text-gray-400 ml-1">/ Month</span>}
+                      <span className="text-3xl font-bold text-gray-900 dark:text-white">Free</span>
                     </div>
-                    {billingCycle === "annually" && plan.monthlyPrice > 0 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Billed {formatCurrency(plan.annualPrice)} annually
-                        <span className="ml-1 text-green-600 dark:text-green-400">
-                          (Save {getDiscountPercentage(plan.monthlyPrice, plan.annualPrice)}%)
-                        </span>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      No subscription required
+                    </p>
                   </div>
 
                   <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, index) => (
+                    {freePlan.features.map((feature, index) => (
                       <li key={index} className="flex items-start">
                         <div className="mr-2 mt-1">
-                          <div className="h-4 w-4 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
-                            <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                          <div className={`h-4 w-4 rounded-full flex items-center justify-center ${
+                            feature.included 
+                              ? "bg-green-100 dark:bg-green-800" 
+                              : "bg-gray-100 dark:bg-gray-700"
+                          }`}>
+                            {feature.included ? (
+                              <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                            ) : (
+                              <span className="text-gray-400 dark:text-gray-500 text-xs">✕</span>
+                            )}
                           </div>
                         </div>
-                        <span className="text-sm text-gray-600 dark:text-gray-300">{feature}</span>
+                        <span className={`text-sm ${
+                          feature.included 
+                            ? "text-gray-600 dark:text-gray-300" 
+                            : "text-gray-400 dark:text-gray-500 line-through"
+                        }`}>
+                          {feature.text}
+                        </span>
                       </li>
                     ))}
                   </ul>
 
                   <Button
-                    onClick={() => handlePlanSelect(plan.name)}
-                    className={`w-full ${
-                      plan.popular
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
-                    }`}
-                    variant={plan.popular ? "default" : "outline"}
+                    onClick={() => handlePlanSelect(freePlan.id, freePlan.name)}
+                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
+                    variant="outline"
                   >
-                    {plan.monthlyPrice === 0 ? "Get Started" : "Subscribe"}
+                    Get Started
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {monthlyPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`${plan.color} rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow relative`}
+                >
+                  {plan.popular && (
+                    <div className="absolute top-0 right-0 bg-green-600 text-white text-xs px-2 py-1 rounded-bl-lg">
+                      Most Popular
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">{plan.name}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{plan.description}</p>
+                    
+                    <div className="mb-6">
+                      <div className="flex items-baseline">
+                        <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                          {formatCurrency(plan.price)}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-1">/ month</span>
+                      </div>
+                    </div>
+
+                    <ul className="space-y-3 mb-6">
+                      {plan.features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <div className="mr-2 mt-1">
+                            <div className={`h-4 w-4 rounded-full flex items-center justify-center ${
+                              feature.included 
+                                ? "bg-green-100 dark:bg-green-800" 
+                                : "bg-gray-100 dark:bg-gray-700"
+                            }`}>
+                              {feature.included ? (
+                                <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <span className="text-gray-400 dark:text-gray-500 text-xs">✕</span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-sm ${
+                            feature.included 
+                              ? "text-gray-600 dark:text-gray-300" 
+                              : "text-gray-400 dark:text-gray-500 line-through"
+                          }`}>
+                            {feature.text}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      onClick={() => handlePlanSelect(plan.id, plan.name)}
+                      className={`w-full ${
+                        plan.popular
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white"
+                      }`}
+                      variant={plan.popular ? "default" : "outline"}
+                    >
+                      Subscribe
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-6 text-sm text-gray-500 dark:text-gray-400">
-            All plans include access to the OjaChat marketplace. No credit card required for basic plan.
+            {activeTab === "free" 
+              ? "Upgrade anytime to unlock more features and higher limits"
+              : "All plans include core features. Cancel anytime."}
           </div>
         </div>
       </DialogContent>
@@ -195,4 +260,4 @@ const SubscriptionModal = ({ isOpen, onClose }: SubscriptionModalProps) => {
   );
 };
 
-export default SubscriptionModal; 
+export default SubscriptionModal;
