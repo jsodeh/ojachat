@@ -13,13 +13,16 @@ body {
 }
 
 .grok-input {
-  @apply bg-grok-light-input text-grok-light-text-primary border border-grok-light-border rounded-2xl px-6 py-3 focus:outline-none focus:ring-1 focus:ring-grok-light-border shadow-sm;
+  @apply bg-grok-light-input text-grok-light-text-primary border border-grok-light-border rounded-2xl px-6 py-3 focus:outline-none focus:ring-1 focus:ring-grok-light-border shadow-sm ;
   min-height: 120px;
   resize: none;
 }
-
+ 
 .dark .grok-input {
   @apply bg-grok-dark-input text-grok-dark-text-primary border-grok-dark-border focus:ring-grok-dark-border;
+}
+
+@keyframes glowing-border {
 }
 
 .grok-button {

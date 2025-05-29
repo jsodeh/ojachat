@@ -34,6 +34,9 @@ const WelcomeMessage = ({ className }: WelcomeMessageProps) => {
       <h1 className="grok-welcome-title text-2xl md:text-3xl mb-1">
         {fullGreeting}
       </h1>
+      <p className="grok-welcome-subtitle text-lg">
+        What would you like to buy today?
+      </p>
     </div>
   );
 };

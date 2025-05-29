@@ -56,16 +56,16 @@ const AttachmentMenu = ({
             onClick={() => handleOptionClick('picture')}
           >
             <Camera className="h-4 w-4" />
-            <span>Take a picture</span>
+            <span>Use Camera</span>
           </button>
-          
           <button 
             className="flex items-center gap-2 w-full p-2 text-sm rounded-md hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover text-left"
-            onClick={() => handleOptionClick('voice')}
+            onClick={() => handleOptionClick('gallery')}
           >
-            <Mic className="h-4 w-4" />
-            <span>Send a Voice note</span>
+            <Paperclip className="h-4 w-4" />
+            <span>Upload from Gallery</span>
           </button>
+
         </div>
       </div>
     </>
@@ -163,7 +163,6 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId, onAt
       setIsMoreOptionsOpen(true);
     }
   };
-
   const handleOpenAttachmentMenu = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event bubbling
     
@@ -203,22 +202,19 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId, onAt
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={isLoading ? "Connecting to service..." : "What do you want to know?"}
+        placeholder={isLoading ? "Connecting to service..." : currentText || "What do you want to know?"}
         className="grok-input w-full text-base"
         style={{ minHeight: isLarge ? "140px" : "120px" }}
         disabled={isLoading}
       />
-      
-      <div className="absolute bottom-4 left-4 flex items-center gap-2 text-grok-light-text-secondary dark:text-grok-dark-text-secondary">
-        {!isMobile && (
+      <div className="absolute bottom-4 left-4 flex items-center gap-2 text-grok-light-text-secondary dark:text-grok-dark-text-secondary z-10">
           <button 
             ref={attachmentButtonRef}
             onClick={handleOpenAttachmentMenu}
             className="p-2 rounded-full bg-grok-light-button-bg dark:bg-grok-dark-button-bg border border-grok-light-border dark:border-grok-dark-border hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover"
           >
-            <Paperclip className="h-5 w-5" />
+            <Camera className="h-5 w-5" />
           </button>
-        )}
         
         <button 
           ref={moreOptionsButtonRef}
@@ -236,7 +232,7 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId, onAt
           ) : (
             <Crown className="h-5 w-5 text-yellow-500" />
           )}
-          <span className="text-sm font-medium">Do More</span>
+          {!isMobile && <span className="text-sm font-medium">Do More</span>}
         </button>
       </div>
       
@@ -246,7 +242,7 @@ const ChatInput = ({ onSend, isLoading = false, isLarge = false, sessionId, onAt
           className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-grok-light-button-bg dark:bg-grok-dark-button-bg border border-grok-light-border dark:border-grok-dark-border hover:bg-grok-light-button-hover dark:hover:bg-grok-dark-button-hover"
         >
           <Mic className="h-5 w-5" />
-          <span className="text-sm">Voice Mode</span>
+          {!isMobile && <span className="text-sm">Voice Mode</span>}
         </button>
         
         <button 

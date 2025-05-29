@@ -5,7 +5,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { 
   Image, 
   Mic, 
-  FileText, 
+  Camera,
   Link, 
   Search,
   Upload
@@ -24,33 +24,10 @@ export default function AttachmentModal({ isOpen, onClose, onSelect }: Attachmen
   const isPaidUser = subscription?.status === 'active';
 
   const options = [
-    {
-      id: 'image',
-      label: 'Upload Image',
-      icon: Image,
-      color: 'text-blue-500',
-      description: 'Upload an image from your device'
-    },
-    {
-      id: 'image-search',
-      label: 'Image Search',
-      icon: Search,
-      color: 'text-purple-500',
-      description: 'Search and analyze images'
-    },
-    {
-      id: 'voice-notes',
-      label: 'Voice Notes',
-      icon: Mic,
-      color: 'text-green-500',
-      description: 'Record and send voice messages'
-    }
+    { id: 'use-camera', label: 'Use Camera', icon: Camera, color: 'text-blue-500', description: 'Take a photo with your camera' },
+    { id: 'upload-gallery', label: 'Upload from Gallery', icon: Image, color: 'text-purple-500', description: 'Upload an image from your gallery' },
+    { id: 'upload-pdf', label: 'Upload PDF', icon: Upload, color: 'text-green-500', description: 'Upload a PDF document' },
   ];
-
-  // For free users, only show image upload, image search, and voice notes
-  const filteredOptions = isPaidUser ? options : options.filter(opt => 
-    ['image', 'image-search', 'voice-notes'].includes(opt.id)
-  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -59,7 +36,7 @@ export default function AttachmentModal({ isOpen, onClose, onSelect }: Attachmen
           <DialogTitle>Add Attachment</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          {filteredOptions.map((option) => (
+          {options.map((option) => (
             <Button
               key={option.id}
               variant="ghost"
