@@ -35,7 +35,13 @@ interface WebhookRequest {
   body?: any;
 }
 
-const N8N_WEBHOOK_URL = 'https://n8n.srv811785.hstgr.cloud/webhook-test/bf4dd093-bb02-472c-9454-7ab9af97bd1d';
+// Get N8N_WEBHOOK_URL from environment variables
+const N8N_WEBHOOK_URL = Deno.env.get('N8N_WEBHOOK_URL');
+
+if (!N8N_WEBHOOK_URL) {
+  console.error('N8N_WEBHOOK_URL environment variable not set.');
+  // Exit the process or handle this error appropriately in a production environment
+}
 
 console.log("n8n-router function started");
 
@@ -75,7 +81,7 @@ serve(async (req) => {
     const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
     try {
-      console.log('Forwarding request to:', N8N_WEBHOOK_URL);
+      console.log('Forwarding request to:', N8N_WEBHOOK_URL || 'N8N_WEBHOOK_URL not set');
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: req.method,
         headers: headers,
